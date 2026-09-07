@@ -59,6 +59,7 @@ h2{font-size:20px;line-height:1.25;margin:0 0 6px;font-weight:650}
 .row{
   display:flex;align-items:center;gap:12px;width:100%;
   padding:14px;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;
+  text-decoration:none;
 }
 .row + .row{border-top:1px solid var(--sep)}
 .row:active{background:var(--sec-bg)}
@@ -102,6 +103,7 @@ h2{font-size:20px;line-height:1.25;margin:0 0 6px;font-weight:650}
 .btn{
   display:block;width:100%;padding:14px;border:0;border-radius:12px;
   background:var(--btn);color:var(--btn-text);font:600 16px/1 inherit;cursor:pointer;margin-top:10px;
+  text-align:center;text-decoration:none;
 }
 .btn:active{opacity:.85}
 .btn.ghost{background:var(--sec-bg);color:var(--link)}
@@ -127,7 +129,8 @@ h2{font-size:20px;line-height:1.25;margin:0 0 6px;font-weight:650}
 }
 .field::placeholder{color:var(--hint)}
 
-.back{background:none;border:0;color:var(--link);font:16px/1 inherit;padding:6px 0 12px;cursor:pointer}
+.back{display:inline-block;background:none;border:0;color:var(--link);font:16px/1 inherit;
+  padding:6px 0 12px;cursor:pointer;text-decoration:none}
 .toast{
   position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translate(-50%,20px);
   background:rgba(0,0,0,.82);color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;

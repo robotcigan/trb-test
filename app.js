@@ -1,6 +1,6 @@
-/* Tribute mini app — общий движок для ru/ и en/ версий.
-   Язык: window.APP_LANG (жёстко задан в языковой папке), иначе язык Telegram.
-   Экраны: лендинги, куда приземляется человек по ссылке, и кабинет автора. */
+/* Tribute mini app — общий код статичных страниц.
+   Каждая страница задаёт window.APP_LANG, APP_SCREEN и APP_ROOT и рендерит
+   ровно свой экран; переходы между экранами — обычные ссылки, роутера нет. */
 (function () {
   var tg = window.Telegram && window.Telegram.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
@@ -118,12 +118,28 @@
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
   var initial = function (s) { return (s.trim()[0] || 'A').toUpperCase(); };
 
-  function backBtn() { return '<button class="back" data-go="back">‹ ' + T.back + '</button>'; }
+  // --- адреса страниц -------------------------------------------------------
+  var ROOT = window.APP_ROOT || './';
+  var HREF = {
+    home: ROOT, partner: ROOT + 'partner/', subscribe: ROOT + 'subscribe/',
+    donate: ROOT + 'donate/', creator: ROOT + 'creator/',
+    'creator-subs': ROOT + 'creator/subs/', 'creator-donate': ROOT + 'creator/donate/',
+    'creator-partner': ROOT + 'creator/partner/'
+  };
+  var PARENT = {
+    partner: 'home', subscribe: 'home', donate: 'home', creator: 'home',
+    'creator-subs': 'creator', 'creator-donate': 'creator', 'creator-partner': 'creator'
+  };
+  var screen = HREF[window.APP_SCREEN] ? window.APP_SCREEN : 'home';
+
+  function backBtn() {
+    return '<a class="back" href="' + HREF[PARENT[screen] || 'home'] + '">\u2039 ' + T.back + '</a>';
+  }
   function rowHtml(route, ico, cls, pair) {
-    return '<button class="row" data-go="' + route + '">' +
+    return '<a class="row" href="' + HREF[route] + '">' +
       '<span class="ico ' + cls + '">' + ico + '</span>' +
       '<span class="txt"><b>' + esc(pair[0]) + '</b><span>' + esc(pair[1]) + '</span></span>' +
-      '<span class="chev">›</span></button>';
+      '<span class="chev">\u203a</span></a>';
   }
   function linkBox(id) {
     return '<div class="linkbox"><code id="' + id + '"></code>' +
@@ -144,7 +160,7 @@
           rowHtml('donate', '💸', 'pink', T.homeDonate) +
           rowHtml('partner', '🤝', 'blue', T.homePartner) +
         '</div>' +
-        '<button class="btn" data-go="creator">' + T.homeCta + '</button>' +
+        '<a class="btn" href="' + HREF.creator + '">' + T.homeCta + '</a>' +
         '<p class="foot">' + T.trust + '</p>';
     },
 
@@ -154,7 +170,7 @@
         '<p class="sub">' + esc(T.partnerLead) + '</p>' +
         '<ol class="steps">' + T.partnerSteps.map(function (s) {
           return '<li><span>' + esc(s) + '</span></li>'; }).join('') + '</ol>' +
-        '<button class="btn" data-go="creator-partner">' + T.partnerCta + '</button>' +
+        '<a class="btn" href="' + HREF['creator-partner'] + '">' + T.partnerCta + '</a>' +
         '<ul class="facts">' + T.partnerFacts.map(function (f) {
           return '<li>' + esc(f) + '</li>'; }).join('') + '</ul></div>';
     },
@@ -221,50 +237,6 @@
     }
   };
 
-  // --- маршрутизация --------------------------------------------------------
-  var ALIAS = {
-    product: 'home', product_ru: 'home', product_en: 'home',
-    partner_ru: 'partner', partner_en: 'partner',
-    subs: 'subscribe', subs_ru: 'subscribe', subs_en: 'subscribe',
-    donate_ru: 'donate', donate_en: 'donate',
-    cabinet: 'creator', dashboard: 'creator'
-  };
-  // у каждого экрана-точки входа есть своя страница, подэкраны кабинета живут в /creator/
-  var FOLDER = {
-    home: '', partner: 'partner/', subscribe: 'subscribe/', donate: 'donate/',
-    creator: 'creator/', 'creator-subs': 'creator/', 'creator-donate': 'creator/',
-    'creator-partner': 'creator/'
-  };
-  var ROOT = (function () {
-    var p = location.pathname.replace(/index\.html$/, '');
-    if (p.slice(-1) !== '/') p += '/';
-    return p.replace(/(partner|subscribe|donate|creator)\/$/, '');
-  })();
-  var current = 'home';
-
-  // адрес всегда соответствует открытому экрану, а не странице входа
-  function syncUrl(name) {
-    var hash = name.indexOf('creator-') === 0 ? '#' + name : '';
-    try { history.replaceState(null, '', ROOT + FOLDER[name] + hash); } catch (e) {}
-  }
-
-  function render(name, push) {
-    name = ALIAS[name] || name;
-    if (!SCREENS[name]) name = 'home';
-    current = name;
-    app.innerHTML = SCREENS[name]();
-    window.scrollTo(0, 0);
-    if (push !== false) syncUrl(name);
-    if (tg && tg.BackButton) { name === 'home' ? tg.BackButton.hide() : tg.BackButton.show(); }
-    wire();
-  }
-
-  function goBack() {
-    if (current.indexOf('creator-') === 0) return render('creator');
-    if (current === 'creator') return render('home');
-    render('home');
-  }
-
   // --- ссылки автора --------------------------------------------------------
   var channel = 0, cabAmount = null;
 
@@ -316,11 +288,8 @@
 
   // --- обработчики после каждого рендера ------------------------------------
   function wire() {
-    app.querySelectorAll('[data-go]').forEach(function (el) {
-      el.addEventListener('click', function () {
-        haptic();
-        el.dataset.go === 'back' ? goBack() : render(el.dataset.go);
-      });
+    app.querySelectorAll('a').forEach(function (el) {
+      el.addEventListener('click', function () { haptic(); });
     });
 
     app.querySelectorAll('[data-copy]').forEach(function (el) {
@@ -398,12 +367,16 @@
     setText('partner-link', refLink());
   }
 
-  if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
-  window.addEventListener('hashchange', function () { render(location.hash.replace('#', ''), false); });
 
-  var start = (tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) ||
-              location.hash.replace('#', '') || window.APP_SCREEN || '';
-  var pathScreen = (location.pathname.match(/(partner|subscribe|donate|creator)\/?$/) || [])[1];
-  if (!start && pathScreen) start = pathScreen;
-  render(start || 'home', false);
+  // --- запуск ---------------------------------------------------------------
+  app.innerHTML = SCREENS[screen]();
+  wire();
+
+  if (tg && tg.BackButton) {
+    if (screen === 'home') tg.BackButton.hide();
+    else {
+      tg.BackButton.show();
+      tg.BackButton.onClick(function () { location.href = HREF[PARENT[screen] || 'home']; });
+    }
+  }
 })();
